@@ -1,0 +1,101 @@
+name: MandroidFinder
+
+options:
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+configFiles:
+  Debug: Configs/Build.xcconfig
+  Release: Configs/Build.xcconfig
+
+settings:
+  base:
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: YES
+
+targets:
+
+  MandroidCore:
+    type: framework
+    platform: macOS
+    sources:
+      - path: Core
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).core
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+        BUILD_LIBRARY_FOR_DISTRIBUTION: NO
+        GENERATE_INFOPLIST_FILE: YES
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.1.0
+
+  MandroidFinder:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+    dependencies:
+      - target: MandroidCore
+        embed: true
+        codeSign: true
+      - target: MandroidFileProvider
+        embed: true
+        codeSign: true
+    info:
+      path: App/Resources/Info.plist
+      properties:
+        CFBundleName: MandroidFinder
+        CFBundleDisplayName: Mandroid Finder
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "14.0"
+        LSUIElement: false
+        NSHighResolutionCapable: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX)
+        CODE_SIGN_ENTITLEMENTS: App/Resources/MandroidFinder.entitlements
+        ENABLE_APP_SANDBOX: YES
+        ENABLE_HARDENED_RUNTIME: YES
+        LD_RUNPATH_SEARCH_PATHS:
+          - "@executable_path/../Frameworks"
+
+  MandroidFileProvider:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Extension
+        excludes:
+          - "Resources/Info.plist"
+          - "Resources/MandroidFileProvider.entitlements"
+    dependencies:
+      - target: MandroidCore
+        embed: false
+    info:
+      path: Extension/Resources/Info.plist
+      properties:
+        CFBundleName: MandroidFileProvider
+        CFBundleDisplayName: Mandroid File Provider
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "14.0"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.fileprovider-nonui
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).FileProviderExtension
+          NSExtensionFileProviderDocumentGroup: group.$(BUNDLE_ID_PREFIX)
+          NSExtensionFileProviderSupportsEnumeration: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).fileprovider
+        PRODUCT_MODULE_NAME: MandroidFileProvider
+        CODE_SIGN_ENTITLEMENTS: Extension/Resources/MandroidFileProvider.entitlements
+        ENABLE_APP_SANDBOX: YES
+        ENABLE_HARDENED_RUNTIME: YES
+        LD_RUNPATH_SEARCH_PATHS:
+          - "@executable_path/../../../../Frameworks"

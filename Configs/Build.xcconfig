@@ -1,0 +1,17 @@
+// Default project configuration. To override locally without committing
+// personal values (Developer Team ID, your reverse-domain prefix, etc.),
+// copy Configs/Local.xcconfig.example to Configs/Local.xcconfig and edit
+// it. Local.xcconfig is gitignored.
+
+// Reverse-domain prefix used for product bundle IDs and App Group.
+// Each target's bundle ID is derived as $(BUNDLE_ID_PREFIX).<target>.
+BUNDLE_ID_PREFIX = com.example.mandroidfinder
+
+// Apple Developer Team ID. Empty here on purpose: the project will
+// fail to sign without this — set it in Local.xcconfig (or the
+// DEVELOPMENT_TEAM env var when invoking xcodebuild).
+DEVELOPMENT_TEAM =
+
+// Optional override file. The "?" makes the include silent if the
+// file isn't present, so first-time clones still parse.
+#include? "Local.xcconfig"
