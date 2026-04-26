@@ -163,6 +163,38 @@ echo "    DMG stapled: yes"
 xcrun stapler validate "$APP" >/dev/null
 echo "    App stapled: yes"
 
+# --------------------------------------------------------------------------
+# Restore the dev environment's File Provider extension registration.
+#
+# `xcodebuild archive` walks its intermediate output directory and quietly
+# registers our `.appex` from there with `pluginkit`. That intermediate
+# location lives under `Build/Intermediates.noindex/ArchiveIntermediates/`
+# and gets cleaned up later — leaving the system pointing at a
+# now-nonexistent bundle, which makes Finder enumerations time out for
+# any registered domain. Re-point pluginkit at the live Debug build
+# (if present) so dev work continues to work after a release.
+# --------------------------------------------------------------------------
+
+EXT_BUNDLE_ID="com.danielkao.mandroidfinder.fileprovider"
+DEBUG_APPEX=$(ls -d "$HOME/Library/Developer/Xcode/DerivedData/MandroidFinder-"*"/Build/Products/Debug/MandroidFinder.app/Contents/PlugIns/MandroidFileProvider.appex" 2>/dev/null | head -1 || true)
+
+echo
+echo "==> Restoring dev File Provider registration"
+# Flush every current registration of our extension (may include stale
+# ArchiveIntermediates path from this build).
+while IFS= read -r path; do
+  [ -n "$path" ] || continue
+  pluginkit -r "$path" 2>/dev/null || true
+done < <(pluginkit -m -v -p com.apple.fileprovider-nonui 2>/dev/null \
+         | awk -v id="$EXT_BUNDLE_ID" '$1 ~ id {print $NF}')
+
+if [ -n "$DEBUG_APPEX" ] && [ -d "$DEBUG_APPEX" ]; then
+  pluginkit -a "$DEBUG_APPEX"
+  echo "    Registered: $DEBUG_APPEX"
+else
+  echo "    (no Debug build at expected path — re-run Scripts/build.sh after this if you intend to keep developing)"
+fi
+
 echo
 echo "✅ Release ready"
 echo "    DMG: $DMG ($(du -h "$DMG" | cut -f1))"
