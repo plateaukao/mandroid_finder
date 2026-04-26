@@ -1,3 +1,5 @@
+<img width="713" height="192" alt="image" src="https://github.com/user-attachments/assets/21963e5c-4847-452a-bd5a-a2b1eb9902d4" />
+
 # Mandroid Finder
 
 Surfaces connected Android devices inside macOS Finder's **Locations** sidebar — the same way iCloud Drive and Google Drive appear — using Apple's File Provider framework. Browsing, drag-and-drop, Quick Look, and Spotlight all work against the device over the adb wire protocol without launching a custom app UI.
