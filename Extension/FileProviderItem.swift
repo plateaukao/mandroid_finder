@@ -70,8 +70,33 @@ enum ItemID {
         NSFileProviderItemIdentifier(path)
     }
 
+    /// Returns a clean device-side path for the identifier.
+    ///
+    /// Defensive unescape: Finder's File Provider cache can hold identifiers
+    /// from previous app versions whose names came from a non-PTY toybox `ls`
+    /// (i.e., `\<space>` for space, `\\` for backslash). After we taught the
+    /// parser to unescape, fresh items get clean identifiers; but old cached
+    /// ones still arrive here with literal backslashes, and `ls` on the
+    /// device would say "No such file or directory" for those — surfacing
+    /// the directory as empty. Unescaping before send-off makes legacy
+    /// identifiers resolve correctly.
     static func decode(_ identifier: NSFileProviderItemIdentifier) -> String {
         if identifier == .rootContainer { return FileProviderExtension.rootPath }
-        return identifier.rawValue
+        return unescape(identifier.rawValue)
+    }
+
+    private static func unescape(_ s: String) -> String {
+        guard s.contains("\\") else { return s }
+        var out = ""
+        out.reserveCapacity(s.count)
+        var iter = s.makeIterator()
+        while let c = iter.next() {
+            if c == "\\", let next = iter.next() {
+                out.append(next)
+            } else {
+                out.append(c)
+            }
+        }
+        return out
     }
 }
