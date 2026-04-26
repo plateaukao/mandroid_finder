@@ -24,6 +24,49 @@ public enum ADBClient {
         return parseDevicesL(payload)
     }
 
+    /// Subscribes to the adb server's `host:track-devices` event stream.
+    /// One TCP connection stays open for the lifetime of the stream; the
+    /// server pushes a fresh device list every time something changes
+    /// (plug, unplug, state transition).
+    ///
+    /// The stream throws `ADBError.serverUnreachable` if the server isn't
+    /// running, or `ADBError.protocolError("short read…")` if the server
+    /// closes mid-frame (e.g., `adb kill-server`). Callers reconnect by
+    /// re-subscribing.
+    public static func trackDevices() -> AsyncThrowingStream<[DeviceInfo], Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                let conn: ADBConnection
+                do {
+                    conn = try await ADBConnection.connect()
+                    // `-l` long format keeps the same payload shape as
+                    // host:devices-l so the existing parser handles it.
+                    try await sendService(conn, "host:track-devices-l")
+                    try await readStatus(conn)
+                } catch {
+                    continuation.finish(throwing: error)
+                    return
+                }
+
+                while !Task.isCancelled {
+                    do {
+                        let payload = try await readHexLengthPayload(conn)
+                        continuation.yield(parseDevicesL(payload))
+                    } catch {
+                        continuation.finish(throwing: error)
+                        conn.close()
+                        return
+                    }
+                }
+                conn.close()
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in
+                task.cancel()
+            }
+        }
+    }
+
     /// Runs `command` on the device's shell and returns combined stdout+stderr.
     /// Uses lossy UTF-8 decoding so non-UTF-8 filenames (Shift-JIS, GBK, …)
     /// still surface — invalid bytes become U+FFFD.

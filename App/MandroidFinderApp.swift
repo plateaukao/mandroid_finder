@@ -24,7 +24,10 @@ struct MandroidFinderApp: App {
 
     private func bootstrap() async {
         deviceManager.start()
-        await deviceManager.pollOnce()
+        // Wait for the first track-devices snapshot (or first connection
+        // failure) before reconciling so we don't blindly remove every
+        // existing domain on launch when the adb server is briefly slow.
+        await deviceManager.awaitFirstUpdate()
         await domainController.reconcile(with: deviceManager.devices)
     }
 }

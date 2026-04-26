@@ -95,8 +95,8 @@ mandroid_finder/
 - [x] Both targets sandboxed; only `network.client` entitlement needed
 - [x] Native adb-protocol client in pure Swift — no bundled binary
 - [x] Handles non-UTF-8 filenames lossily (Shift-JIS / GBK / etc. show up rather than aborting the listing)
+- [x] Event-driven device detection via `host:track-devices-l` (long-lived stream; auto-reconnect on `adb kill-server`)
 - [ ] Sync anchor / change observation (currently a no-op — Finder refreshes on user navigation)
-- [ ] Replace `host:devices-l` polling with `host:track-devices` event stream
 - [ ] Long-running transfer progress reporting via NSProgress
 
 ## Verification (manual, requires real device)

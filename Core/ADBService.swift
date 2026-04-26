@@ -35,6 +35,14 @@ public actor ADBService {
         try await ADBClient.devices()
     }
 
+    /// Long-lived event stream — yields the full device list every time the
+    /// adb server reports a change. Use this instead of polling `devices()`.
+    /// `nonisolated` because the stream itself isn't bound to the actor;
+    /// each yielded snapshot is delivered to whatever task awaits it.
+    public nonisolated func trackDevices() -> AsyncThrowingStream<[DeviceInfo], Error> {
+        ADBClient.trackDevices()
+    }
+
     // MARK: - Filesystem
 
     public func list(serial: String, path: String) async throws -> [AndroidFile] {
