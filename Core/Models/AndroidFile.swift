@@ -59,11 +59,14 @@ public enum LSParser {
         let date = dateFormatter.date(from: "\(columns[5]) \(columns[6])")
 
         // Name may contain spaces; reassemble from index 7. For symlinks, drop "-> target".
+        // toybox `ls` without a PTY (our case — adb's shell: service is non-PTY)
+        // backslash-escapes spaces and other special characters. Unescape after
+        // stripping the symlink target so the arrow itself isn't perturbed.
         var nameParts = columns[7...].joined(separator: " ")
         if isSymlink, let arrow = nameParts.range(of: " -> ") {
             nameParts = String(nameParts[..<arrow.lowerBound])
         }
-        let name = nameParts
+        let name = unescape(nameParts)
         guard name != "." && name != ".." else { return nil }
 
         let fullPath = parentPath.hasSuffix("/")
@@ -85,5 +88,23 @@ public enum LSParser {
         output
             .split(separator: "\n", omittingEmptySubsequences: true)
             .compactMap { parseLine(String($0), parentPath: parentPath) }
+    }
+
+    /// Reverses toybox's backslash-escaping of spaces / special chars in
+    /// filenames (`AR\ Emoji\ camera` → `AR Emoji camera`, `\\` → `\`).
+    /// Unknown escapes degrade to "drop the backslash" — wrong for `\n`/`\t`
+    /// inside a filename, but those are vanishingly rare in practice.
+    private static func unescape(_ s: String) -> String {
+        var out = ""
+        out.reserveCapacity(s.count)
+        var iter = s.makeIterator()
+        while let c = iter.next() {
+            if c == "\\", let next = iter.next() {
+                out.append(next)
+            } else {
+                out.append(c)
+            }
+        }
+        return out
     }
 }
